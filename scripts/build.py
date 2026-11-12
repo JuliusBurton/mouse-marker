@@ -26,16 +26,8 @@ def glyph_signature(glyph):
     )
 
 
-def remaining_specimen_groups(font, row_length=18):
-    shown_text = (
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789"
-        "ÁÉÍÓÚáéíóú"
-        "ÄËÏÖÜäëïöü"
-        "ÂÊÎÔÛâêîôû"
-        "ÃÑÕÇçãñõ"
-    )
+def remaining_specimen_groups(font):
+    shown_text = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     shown_codepoints = {ord(char) for char in shown_text}
     seen_codepoints = set()
     accented = []
@@ -72,18 +64,74 @@ def remaining_specimen_groups(font, row_length=18):
         seen_codepoints.add(codepoint)
         display_char = char.replace("%", "%%")
         unicode_name = unicodedata.name(char, "")
+        item = (display_char, glyph.width, codepoint, unicode_name, char)
         if "LATIN" in unicode_name or any(
             keyword in unicode_name for keyword in accent_keywords
         ):
-            accented.append(display_char)
+            accented.append(item)
         else:
-            other.append(display_char)
+            other.append(item)
 
-    def rows(chars):
-        return [
-            "".join(chars[index : index + row_length])
-            for index in range(0, len(chars), row_length)
-        ]
+    accent_order = (
+        "RING ABOVE",
+        "ACUTE",
+        "DIAERESIS",
+        "GRAVE",
+        "CIRCUMFLEX",
+        "TILDE",
+        "MACRON",
+        "BREVE",
+        "CARON",
+        "CEDILLA",
+        "COMMA BELOW",
+        "DOUBLE ACUTE",
+        "OGONEK",
+    )
+
+    def accent_key(item):
+        _, _, codepoint, unicode_name, char = item
+        normalized = unicodedata.normalize("NFKD", char)
+        base = "".join(
+            part for part in normalized if part.isalpha() and not unicodedata.combining(part)
+        ).casefold()
+        if "LETTER AE" in unicode_name:
+            base = "a"
+        elif "LETTER OE" in unicode_name:
+            base = "o"
+        elif "SHARP S" in unicode_name:
+            base = "s"
+        elif "DOTLESS I" in unicode_name:
+            base = "i"
+        elif "F WITH HOOK" in unicode_name:
+            base = "f"
+        accent_rank = next(
+            (index for index, marker in enumerate(accent_order) if marker in unicode_name),
+            len(accent_order),
+        )
+        return (
+            base or "{",
+            0 if char.islower() else 1,
+            accent_rank,
+            codepoint,
+        )
+
+    accented.sort(key=accent_key)
+
+    def rows(items, max_width=20500):
+        result = []
+        current = []
+        current_width = 0
+        for item in items:
+            display_char, width, _, _, _ = item
+            if current and current_width + width > max_width:
+                result.append("".join(current))
+                current = []
+                current_width = 0
+            current.append(display_char)
+            current_width += width
+        if current:
+            result.append("".join(current))
+        return result
 
     return rows(accented), rows(other)
 
@@ -115,10 +163,10 @@ def main():
         os.remove(WOFF2_OUTPUT)
     run(["woff2_compress", TTF_OUTPUT])
 
-    accent_start = 990
-    accent_step = 100
-    pangram_start = accent_start + len(accented_rows) * accent_step + 100
-    other_start = pangram_start + 230
+    pangram_start = 550
+    accent_start = 800
+    accent_step = 92
+    other_start = accent_start + len(accented_rows) * accent_step + 100
     image_height = other_start + len(other_rows) * accent_step + 100
 
     specimen_command = [
@@ -144,17 +192,11 @@ def main():
             "+96+440",
             "0123456789",
             "-annotate",
-            "+96+550",
-            "ÁÉÍÓÚ áéíóú",
+            f"+96+{pangram_start}",
+            "The quick brown fox jumped",
             "-annotate",
-            "+96+660",
-            "ÄËÏÖÜ äëïöü",
-            "-annotate",
-            "+96+770",
-            "ÂÊÎÔÛ âêîôû",
-            "-annotate",
-            "+96+880",
-            "ÃÑÕ Çç ãñõ",
+            f"+96+{pangram_start + 110}",
+            "over the lazy dog",
             "-pointsize",
             "64",
         ]
@@ -167,17 +209,6 @@ def main():
                 row,
             ]
         )
-
-    specimen_command.extend(
-        [
-            "-annotate",
-            f"+96+{pangram_start}",
-            "The quick brown fox jumped",
-            "-annotate",
-            f"+96+{pangram_start + 110}",
-            "over the lazy dog",
-        ]
-    )
 
     for index, row in enumerate(other_rows):
         specimen_command.extend(
