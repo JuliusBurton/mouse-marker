@@ -31,8 +31,10 @@ License URL: <https://creativecommons.org/publicdomain/zero/1.0/>
 - `fonts/Mouse-Marker-Regular.ttf` - compatibility build
 - `fonts/Mouse-Marker-Regular.woff2` - web embedding build
 - `source/Mouse-Marker-source.sfd` - FontForge source file
-- `images/specimen.png` - preview specimen, including accented Latin characters
+- `images/specimen.png` - preview specimen, including accented Latin characters and the remaining encoded punctuation/symbol glyphs
 - `scripts/build.py` - rebuilds the public release files
+
+The specimen appendix includes the remaining printable encoded glyphs and omits glyphs whose outlines duplicate `/uni0000` / `.notdef`.
 
 ## Installation
 

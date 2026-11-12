@@ -18,6 +18,49 @@ def run(command):
     subprocess.run(command, check=True)
 
 
+def glyph_signature(glyph):
+    return tuple(
+        tuple((round(point.x, 6), round(point.y, 6), point.on_curve) for point in contour)
+        for contour in glyph.foreground
+    )
+
+
+def remaining_specimen_rows(font, row_length=24):
+    shown_text = (
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        "ÁÉÍÓÚáéíóú"
+        "ÄËÏÖÜäëïöü"
+        "ÂÊÎÔÛâêîôû"
+        "ÃÑÕÇçãñõ"
+    )
+    shown_codepoints = {ord(char) for char in shown_text}
+    seen_codepoints = set()
+    remaining = []
+    notdef_signature = glyph_signature(font[".notdef"])
+
+    for glyph in font.glyphs():
+        codepoint = glyph.unicode
+        if (
+            codepoint < 0x21
+            or codepoint in shown_codepoints
+            or codepoint in seen_codepoints
+            or glyph_signature(glyph) == notdef_signature
+        ):
+            continue
+        char = chr(codepoint)
+        if not char.isprintable() or char.isspace():
+            continue
+        seen_codepoints.add(codepoint)
+        remaining.append(char.replace("%", "%%"))
+
+    return [
+        "".join(remaining[index : index + row_length])
+        for index in range(0, len(remaining), row_length)
+    ]
+
+
 def main():
     os.makedirs(os.path.join(ROOT, "fonts"), exist_ok=True)
     os.makedirs(os.path.join(ROOT, "source"), exist_ok=True)
@@ -38,17 +81,17 @@ def main():
     font.save(SOURCE_PATH)
     font.generate(OTF_OUTPUT)
     font.generate(TTF_OUTPUT)
+    additional_rows = remaining_specimen_rows(font)
     font.close()
 
     if os.path.exists(WOFF2_OUTPUT):
         os.remove(WOFF2_OUTPUT)
     run(["woff2_compress", TTF_OUTPUT])
 
-    run(
-        [
+    specimen_command = [
             "magick",
             "-size",
-            "1600x1200",
+            f"1600x{1390 + len(additional_rows) * 86}",
             "xc:#ffffff",
             "-fill",
             "#000000",
@@ -88,6 +131,32 @@ def main():
             "-font",
             SPECIMEN_META_FONT,
             "-pointsize",
+            "24",
+            "-fill",
+            "#000000",
+            "-annotate",
+            "+96+1240",
+            "Additional encoded characters",
+            "-font",
+            OTF_OUTPUT,
+            "-pointsize",
+            "44",
+        ]
+
+    for index, row in enumerate(additional_rows):
+        specimen_command.extend(
+            [
+                "-annotate",
+                f"+96+{1300 + index * 86}",
+                row,
+            ]
+        )
+
+    specimen_command.extend(
+        [
+            "-font",
+            SPECIMEN_META_FONT,
+            "-pointsize",
             "42",
             "-fill",
             "#000000",
@@ -104,6 +173,7 @@ def main():
             SPECIMEN_OUTPUT,
         ]
     )
+    run(specimen_command)
 
 
 if __name__ == "__main__":
