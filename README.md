@@ -4,7 +4,7 @@ Mouse Marker is a hand-drawn marker style typeface.
 
 Designed by Julius Burton.
 
-This repository publishes the `v1.0.0` release of Mouse Marker. The source art version for this release is `001.025`.
+This repository publishes the `v1.1.0` release of Mouse Marker. This release expands and updates the Latin character set with accented characters, including acute, diaeresis, circumflex, and tilde forms.
 
 ![Mouse Marker specimen](images/specimen.png)
 
@@ -31,7 +31,7 @@ License URL: <https://creativecommons.org/publicdomain/zero/1.0/>
 - `fonts/Mouse-Marker-Regular.ttf` - compatibility build
 - `fonts/Mouse-Marker-Regular.woff2` - web embedding build
 - `source/Mouse-Marker-source.sfd` - FontForge source file
-- `images/specimen.png` - preview specimen
+- `images/specimen.png` - preview specimen, including accented Latin characters
 - `scripts/build.py` - rebuilds the public release files
 
 ## Installation
@@ -66,3 +66,4 @@ body {
 - Designer: `Julius Burton`
 - License: `CC0 1.0`
 - License URL: `https://creativecommons.org/publicdomain/zero/1.0/`
+- Release: `1.1.0`

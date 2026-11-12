@@ -27,7 +27,7 @@ def main():
     font.familyname = "Mouse Marker"
     font.fullname = "Mouse Marker Regular"
     font.fontname = "MouseMarker-Regular"
-    font.version = "1.0.0"
+    font.version = "1.1.0"
     font.copyright = "Copyright (C) 2026 Julius Burton. Dedicated to the public domain under CC0 1.0 Universal."
     font.appendSFNTName("English (US)", "Preferred Family", "Mouse Marker")
     font.appendSFNTName("English (US)", "Preferred Styles", "Regular")
@@ -48,7 +48,7 @@ def main():
         [
             "magick",
             "-size",
-            "1600x900",
+            "1600x1200",
             "xc:#ffffff",
             "-fill",
             "#000000",
@@ -62,16 +62,28 @@ def main():
             "+96+220",
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
             "-annotate",
-            "+96+340",
+            "+96+330",
             "abcdefghijklmnopqrstuvwxyz",
             "-annotate",
-            "+96+460",
+            "+96+440",
             "0123456789",
             "-annotate",
-            "+96+620",
+            "+96+550",
+            "ÁÉÍÓÚ áéíóú",
+            "-annotate",
+            "+96+660",
+            "ÄËÏÖÜ äëïöü",
+            "-annotate",
+            "+96+770",
+            "ÂÊÎÔÛ âêîôû",
+            "-annotate",
+            "+96+880",
+            "ÃÑÕ Çç ãñõ",
+            "-annotate",
+            "+96+1010",
             "The quick brown fox jumped",
             "-annotate",
-            "+96+730",
+            "+96+1120",
             "over the lazy dog",
             "-font",
             SPECIMEN_META_FONT,
@@ -88,7 +100,7 @@ def main():
             "#000000",
             "-annotate",
             "+96+120",
-            "Release v1.0.0   Designed by Julius Burton   CC0 1.0 Universal",
+            "Release v1.1.0   Designed by Julius Burton   CC0 1.0 Universal",
             SPECIMEN_OUTPUT,
         ]
     )
