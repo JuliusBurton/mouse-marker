@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import unicodedata
 
 import fontforge
 
@@ -25,7 +26,7 @@ def glyph_signature(glyph):
     )
 
 
-def remaining_specimen_rows(font, row_length=24):
+def remaining_specimen_groups(font, row_length=18):
     shown_text = (
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz"
@@ -37,8 +38,24 @@ def remaining_specimen_rows(font, row_length=24):
     )
     shown_codepoints = {ord(char) for char in shown_text}
     seen_codepoints = set()
-    remaining = []
+    accented = []
+    other = []
     notdef_signature = glyph_signature(font[".notdef"])
+    accent_keywords = (
+        "ACCENT",
+        "ACUTE",
+        "BREVE",
+        "CARON",
+        "CEDILLA",
+        "CIRCUMFLEX",
+        "COMMA BELOW",
+        "DIAERESIS",
+        "DOUBLE ACUTE",
+        "GRAVE",
+        "MACRON",
+        "OGONEK",
+        "TILDE",
+    )
 
     for glyph in font.glyphs():
         codepoint = glyph.unicode
@@ -53,12 +70,22 @@ def remaining_specimen_rows(font, row_length=24):
         if not char.isprintable() or char.isspace():
             continue
         seen_codepoints.add(codepoint)
-        remaining.append(char.replace("%", "%%"))
+        display_char = char.replace("%", "%%")
+        unicode_name = unicodedata.name(char, "")
+        if "LATIN" in unicode_name or any(
+            keyword in unicode_name for keyword in accent_keywords
+        ):
+            accented.append(display_char)
+        else:
+            other.append(display_char)
 
-    return [
-        "".join(remaining[index : index + row_length])
-        for index in range(0, len(remaining), row_length)
-    ]
+    def rows(chars):
+        return [
+            "".join(chars[index : index + row_length])
+            for index in range(0, len(chars), row_length)
+        ]
+
+    return rows(accented), rows(other)
 
 
 def main():
@@ -81,17 +108,23 @@ def main():
     font.save(SOURCE_PATH)
     font.generate(OTF_OUTPUT)
     font.generate(TTF_OUTPUT)
-    additional_rows = remaining_specimen_rows(font)
+    accented_rows, other_rows = remaining_specimen_groups(font)
     font.close()
 
     if os.path.exists(WOFF2_OUTPUT):
         os.remove(WOFF2_OUTPUT)
     run(["woff2_compress", TTF_OUTPUT])
 
+    accent_start = 990
+    accent_step = 100
+    pangram_start = accent_start + len(accented_rows) * accent_step + 100
+    other_start = pangram_start + 230
+    image_height = other_start + len(other_rows) * accent_step + 100
+
     specimen_command = [
             "magick",
             "-size",
-            f"1600x{1390 + len(additional_rows) * 86}",
+            f"1600x{image_height}",
             "xc:#ffffff",
             "-fill",
             "#000000",
@@ -122,32 +155,35 @@ def main():
             "-annotate",
             "+96+880",
             "ÃÑÕ Çç ãñõ",
-            "-annotate",
-            "+96+1010",
-            "The quick brown fox jumped",
-            "-annotate",
-            "+96+1120",
-            "over the lazy dog",
-            "-font",
-            SPECIMEN_META_FONT,
             "-pointsize",
-            "24",
-            "-fill",
-            "#000000",
-            "-annotate",
-            "+96+1240",
-            "Additional encoded characters",
-            "-font",
-            OTF_OUTPUT,
-            "-pointsize",
-            "44",
+            "64",
         ]
 
-    for index, row in enumerate(additional_rows):
+    for index, row in enumerate(accented_rows):
         specimen_command.extend(
             [
                 "-annotate",
-                f"+96+{1300 + index * 86}",
+                f"+96+{accent_start + index * accent_step}",
+                row,
+            ]
+        )
+
+    specimen_command.extend(
+        [
+            "-annotate",
+            f"+96+{pangram_start}",
+            "The quick brown fox jumped",
+            "-annotate",
+            f"+96+{pangram_start + 110}",
+            "over the lazy dog",
+        ]
+    )
+
+    for index, row in enumerate(other_rows):
+        specimen_command.extend(
+            [
+                "-annotate",
+                f"+96+{other_start + index * accent_step}",
                 row,
             ]
         )
